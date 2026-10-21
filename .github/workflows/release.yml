@@ -1,0 +1,114 @@
+name: Release
+
+on:
+  schedule:
+    # Kaikki refreshes data roughly weekly.
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Rebuild even if a release for the current data already exists
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Check for new data
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      build: ${{ steps.tag.outputs.build }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v10.3.0
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Read source metadata
+        run: uv run tinydict fetch --metadata-only
+
+      - name: Decide release tag
+        id: tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          tag="$(uv run tinydict release-tag)"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if [ "$FORCE" != "true" ] && gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists; nothing to do." | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Building release $tag." | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    name: Build and publish
+    needs: check
+    if: needs.check.outputs.build == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v10.3.0
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Download source data
+        run: uv run tinydict fetch
+
+      - name: Check release tag
+        env:
+          EXPECTED: ${{ needs.check.outputs.tag }}
+        run: |
+          tag="$(uv run tinydict release-tag)"
+          if [ "$tag" != "$EXPECTED" ]; then
+            echo "Source data changed during the run ($EXPECTED -> $tag); retry later." >&2
+            exit 1
+          fi
+
+      - name: Build dictionaries
+        run: uv run tinydict build
+
+      - name: Write release notes
+        run: uv run tinydict release-notes > release-notes.md
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.check.outputs.tag }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/*.zip dist/manifest.json --clobber
+            gh release edit "$TAG" --notes-file release-notes.md
+          else
+            gh release create "$TAG" dist/*.zip dist/manifest.json \
+              --title "Dictionaries $TAG" \
+              --notes-file release-notes.md \
+              --target "$GITHUB_SHA" \
+              --latest
+          fi
+          cat release-notes.md >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,48 @@
+# Source datasets and the dictionaries built from them.
+#
+# Sources are Wiktextract JSONL dumps published by kaikki.org.
+#   edition  = path segment for the Wiktionary edition
+#              ("dictionary" = English Wiktionary, "kowiktionary" = Korean Wiktionary, ...)
+#   language = language page name inside that edition
+#
+# Dictionaries reference sources by id and pick a builder:
+#   wiktextract - render entries with PyGlossary's Wiktextract reader
+#   bilingual   - combine translation lists and target-language glosses
+
+[sources.enwiktionary-en]
+edition = "dictionary"
+language = "English"
+
+[sources.kowiktionary-en]
+edition = "kowiktionary"
+language = "영어"
+
+[[dictionaries]]
+id = "wiktionary-en"
+name = "Wiktionary English"
+builder = "wiktextract"
+sources = ["enwiktionary-en"]
+min_entries = 1_000_000
+checks = [
+  { query = "dictionary", contains = "IPA" },
+  { query = "serendipity", contains = "luck" },
+  { query = "went", headword = "go" },
+  { query = "dictionaries", headword = "dictionary" },
+]
+
+[[dictionaries]]
+id = "wiktionary-en-ko"
+name = "Wiktionary 영한"
+builder = "bilingual"
+sources = ["enwiktionary-en", "kowiktionary-en"]
+min_entries = 25_000
+checks = [
+  { query = "bank", contains = "은행" },
+  { query = "dictionary", contains = "사전" },
+  { query = "went", headword = "go" },
+]
+
+[dictionaries.options]
+target_lang = "ko"
+translations_source = "enwiktionary-en"
+glosses_source = "kowiktionary-en"

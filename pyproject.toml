@@ -1,0 +1,39 @@
+[project]
+name = "tinydict"
+version = "0.1.0"
+description = "Build offline StarDict dictionaries from Wiktionary data (kaikki.org)"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [
+    { name = "winetree94", email = "me@winetree94.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "lxml>=6.1",
+    "pyglossary>=5.4.2",
+    "python-idzip>=0.3.10",
+]
+
+[project.scripts]
+tinydict = "tinydict:main"
+
+[build-system]
+requires = ["uv_build>=0.13.4,<0.14.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.17.1",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
