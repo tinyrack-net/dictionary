@@ -17,6 +17,7 @@ from typing import Any
 
 from ..cleaning import inflected_forms, is_noise_etymology, is_noise_example, is_noise_sense
 from ..glossary import STARDICT_WRITE_OPTIONS, new_glossary
+from ..links import link_href
 from ..sources import iter_entries, iter_lines
 from . import BuildContext
 
@@ -159,7 +160,8 @@ def render(word: str, c: Collector) -> str:
         for key in ("synonyms", "antonyms"):
             words = [x["word"] for x in e.get(key) or () if x.get("word")]
             if words:
-                parts.append(f"<div>{ui[key]}: {esc(', '.join(dict.fromkeys(words)))}</div>")
+                links = ", ".join(f'<a href="{link_href(w)}">{esc(w)}</a>' for w in dict.fromkeys(words))
+                parts.append(f"<div>{ui[key]}: {links}</div>")
         if ety := [t for t in e.get("etymology_texts") or () if not is_noise_etymology(t)]:
             parts.append(f"<div>{ui['etymology']}: {esc(' '.join(ety))}</div>")
 

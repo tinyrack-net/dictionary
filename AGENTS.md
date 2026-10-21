@@ -17,6 +17,7 @@ stale doc.
 | `src/tinydict/config.py` | Loads and validates the config |
 | `src/tinydict/sources.py` | Downloads Kaikki data, reads page metadata, iterates JSONL |
 | `src/tinydict/cleaning.py` | Fixes Wiktextract data quirks (bogus forms, noise text) |
+| `src/tinydict/links.py` | Portable cross-reference links between entries |
 | `src/tinydict/builders/` | `wiktextract` (monolingual) and `bilingual` builders |
 | `src/tinydict/verify.py` | Entry count and sample lookup checks |
 | `src/tinydict/package.py` | Release zips, attribution README, `manifest.json` |
@@ -48,6 +49,10 @@ output.
 - The release tag includes a hash of the config, `src/tinydict/**/*.py` and
   `uv.lock`. Changing any of these makes the next scheduled run publish a new
   release.
+- Links between entries must be plain relative hrefs (`href="<url-encoded term>"`)
+  built with `links.link_href`, never `bword://`. OSS-Dict / Aard 2 ignore
+  `bword://`, while GoldenDict-ng and KOReader accept plain links.
+  `glossary.py` subclasses PyGlossary's Wiktextract reader to rewrite its links.
 - Importing PyGlossary replaces `sys.excepthook`. `glossary.py` restores it.
   Import PyGlossary only through `tinydict.glossary`.
 - Every release zip must keep the CC BY-SA attribution (`package.py`).

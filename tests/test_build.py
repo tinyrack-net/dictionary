@@ -68,6 +68,9 @@ def test_monolingual_content(project):
     assert go and go[0].l_term[0] == "go"
     for e in entries.values():
         assert "-" not in e.l_term and "no-table-tags" not in e.l_term
+        # cross-references must be plain relative links (OSS-Dict ignores bword://)
+        assert "bword://" not in e.defi
+    assert any('href="' in e.defi for e in entries.values())
 
 
 def test_bilingual_content(project):
@@ -79,6 +82,7 @@ def test_bilingual_content(project):
     dictionary = entries["dictionary"].defi
     assert "번역어" in dictionary and "辭典" in dictionary
     assert "음성 듣기" not in entries["beautiful"].defi
+    assert '<a href="lovely">lovely</a>' in entries["beautiful"].defi  # linked synonym
     assert "public domain" not in entries["beautiful"].defi.split("동의어")[0]
     assert "went" in entries["go"].l_term
 

@@ -9,6 +9,9 @@ from pathlib import Path
 
 _excepthook = sys.excepthook
 from pyglossary.glossary_v2 import ConvertArgs, Glossary  # noqa: E402
+from pyglossary.plugin_handler import PluginHandler  # noqa: E402
+
+from .links import rewrite_bword_links  # noqa: E402
 
 # PyGlossary replaces sys.excepthook on import; on Windows its hook opens a
 # blocking error dialog. Keep Python's default behaviour.
@@ -20,6 +23,28 @@ STARDICT_WRITE_OPTIONS = {"dictzip": True}
 @cache
 def init() -> None:
     Glossary.init()
+    _patch_wiktextract_reader()
+
+
+def _patch_wiktextract_reader() -> None:
+    """Make the Wiktextract reader emit portable cross-reference links.
+
+    See ``tinydict.links`` for why ``bword://`` links are rewritten.
+    """
+    plugin = PluginHandler.plugins["Wiktextract"]
+    base = plugin.readerClass
+    if base is None or getattr(base, "_tinydict_links", False):
+        return
+
+    class Reader(base):  # type: ignore[misc, valid-type]
+        _tinydict_links = True
+
+        def makeEntry(self, data):  # noqa: N802 - PyGlossary API name
+            entry = super().makeEntry(data)
+            entry.editFuncDefi(rewrite_bword_links)
+            return entry
+
+    plugin._Reader = Reader
 
 
 def quiet(verbose: bool) -> None:

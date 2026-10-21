@@ -42,7 +42,7 @@ The files use the StarDict format, so any app that reads StarDict can open them.
 | Platform | App | How |
 | --- | --- | --- |
 | Windows / macOS / Linux | [GoldenDict-ng](https://github.com/xiaoyifang/goldendict-ng) | Unzip into a folder, then add the folder under *Edit → Dictionaries → Sources → Files* and enable *Recursive* |
-| Android | [OSS-Dict](https://github.com/Akylas/OSS-Dict) (Play Store, F-Droid) | Copy the unzipped folder to the phone, then add the `.ifo` file |
+| Android | [OSS-Dict](https://github.com/Akylas/OSS-Dict) (Play Store, F-Droid) | In the *Dictionaries* tab, tap **+** and pick the downloaded `.zip` as is. Don't unzip it. The first open unpacks it into app storage |
 | E-readers | [KOReader](https://koreader.rocks/) | Copy the unzipped folder to `koreader/data/dict/` |
 
 To see English definitions and Korean translations for the same word, turn on
