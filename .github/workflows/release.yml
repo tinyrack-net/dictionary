@@ -101,11 +101,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.check.outputs.tag }}
         run: |
+          # Upload exactly the assets listed in the manifest (every format).
+          mapfile -t assets < <(jq -r '.dictionaries[].asset | "dist/" + .' dist/manifest.json)
+          assets+=(dist/manifest.json)
+          ls -l "${assets[@]}"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" dist/*.zip dist/manifest.json --clobber
+            gh release upload "$TAG" "${assets[@]}" --clobber
             gh release edit "$TAG" --notes-file release-notes.md
           else
-            gh release create "$TAG" dist/*.zip dist/manifest.json \
+            gh release create "$TAG" "${assets[@]}" \
               --title "Dictionaries $TAG" \
               --notes-file release-notes.md \
               --target "$GITHUB_SHA" \
