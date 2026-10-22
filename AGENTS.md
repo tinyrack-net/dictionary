@@ -13,7 +13,7 @@ stale doc.
 | Path | Role |
 | --- | --- |
 | `dictionaries.toml` | Source datasets and the dictionaries built from them |
-| `src/tinydict/cli.py` | `tinydict` CLI: `fetch`, `build`, `release-tag`, `release-notes` |
+| `src/tinydict/cli.py` | `tinydict` CLI: `fetch`, `build`, `fingerprint`, `release-notes` |
 | `src/tinydict/config.py` | Loads and validates the config |
 | `src/tinydict/sources.py` | Downloads sources (kaikki, krdict), records version metadata and attribution |
 | `src/tinydict/cleaning.py` | Fixes Wiktextract data quirks (bogus forms, noise text) |
@@ -46,9 +46,13 @@ output.
 - New cleanup rules go in `cleaning.py` and need tests in `tests/test_cleaning.py`.
 - Every dictionary in `dictionaries.toml` needs `min_entries` and at least one
   `checks` entry, so a broken build fails instead of being released.
-- The release tag includes a hash of the config, `src/tinydict/**/*.py` and
-  `uv.lock`. Changing any of these makes the next scheduled run publish a new
-  release.
+- Releases are tagged `v<UTC build date>.<run number>` (e.g. `v2026.10.22.14`)
+  so GitHub lists them newest first. Don't put hashes or source dates in the
+  tag. The build fingerprint (`tinydict fingerprint`) hashes source versions,
+  the config, `src/tinydict/**/*.py` and `uv.lock`. It is written at the end of
+  the release notes, and the weekly job skips the build when the latest
+  release already has it. Changing code or config therefore publishes a new
+  release on the next run.
 - Support each app with a format it handles natively, written by PyGlossary's
   stock writers. Don't patch PyGlossary output to make one format work in an
   app built for another. For example, OSS-Dict ignores StarDict's `bword://`

@@ -1,4 +1,4 @@
-"""Command line interface: tinydict fetch | build | release-tag."""
+"""Command line interface: tinydict fetch | build | fingerprint | release-notes."""
 
 from __future__ import annotations
 
@@ -70,27 +70,29 @@ def _cmd_build(cfg: Config, args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_release_tag(cfg: Config, args: argparse.Namespace) -> int:
-    """Print a release tag derived from source data dates and the build config.
+def fingerprint(cfg: Config, cache_dir: Path, ids: list[str] | None = None) -> str:
+    """Hash of everything that determines the release output.
 
-    The tag changes when any source is re-extracted, or when the dictionary
-    config, the build code or the locked dependencies change, so CI can skip
-    builds when the output would be the same.
+    It changes when any source changes upstream, or when the dictionary
+    config, the build code or the locked dependencies change. CI records it in
+    the release notes and skips the build when a release already has it.
     """
-    dicts = cfg.select(args.ids)
-    metas = [load_meta(args.cache_dir, s) for s in cfg.sources_for(dicts)]
-    date = max((m.extracted or "0000-00-00") for m in metas)
-    fingerprint = hashlib.sha256()
-    for m in metas:
-        fingerprint.update(f"{m.id}:{m.etag}:{m.size}\n".encode())
+    digest = hashlib.sha256()
+    for source in cfg.sources_for(cfg.select(ids)):
+        m = load_meta(cache_dir, source)
+        digest.update(f"{m.id}:{m.etag}:{m.size}\n".encode())
     inputs = [cfg.path, *sorted(Path(__file__).parent.rglob("*.py"))]
     lock = cfg.path.parent / "uv.lock"
     if lock.exists():
         inputs.append(lock)
     for path in inputs:
-        # Normalize line endings so Windows checkouts produce the same tag.
-        fingerprint.update(path.read_bytes().replace(b"\r\n", b"\n"))
-    print(f"{date}-{fingerprint.hexdigest()[:8]}")
+        # Normalize line endings so Windows checkouts produce the same hash.
+        digest.update(path.read_bytes().replace(b"\r\n", b"\n"))
+    return digest.hexdigest()[:12]
+
+
+def _cmd_fingerprint(cfg: Config, args: argparse.Namespace) -> int:
+    print(fingerprint(cfg, args.cache_dir, args.ids or None))
     return 0
 
 
@@ -125,6 +127,8 @@ def _cmd_release_notes(cfg: Config, args: argparse.Namespace) -> int:
         "Dictionary content: Wiktionary contributors (CC BY-SA 4.0 / GFDL) and "
         "국립국어원 한국어기초사전 (CC BY-SA 2.0 KR); see README.txt / the dictionary "
         "description for each file.",
+        "",
+        f"Build fingerprint: `{fingerprint(cfg, args.cache_dir, args.ids or None)}`",
     ]
     print("\n".join(lines))
     return 0
@@ -141,7 +145,7 @@ def parser() -> argparse.ArgumentParser:
     for name, func, help_ in (
         ("fetch", _cmd_fetch, "download source data (skips unchanged files)"),
         ("build", _cmd_build, "build, verify and package dictionaries"),
-        ("release-tag", _cmd_release_tag, "print the release tag for fetched sources"),
+        ("fingerprint", _cmd_fingerprint, "print the hash of sources, config and code"),
         ("release-notes", _cmd_release_notes, "print Markdown release notes for dist/"),
     ):
         s = sub.add_parser(name, help=help_)

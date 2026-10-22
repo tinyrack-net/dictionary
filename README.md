@@ -28,8 +28,11 @@ the bare word (`배`) to see all of them, or a numbered form (`배²`) for one.
 ## Download
 
 Get the latest files from
-[Releases](https://github.com/tinyrack-net/dictionary/releases/latest). Every
-dictionary comes in two formats with the same entries:
+[Releases](https://github.com/tinyrack-net/dictionary/releases/latest). Releases
+are named by build date (`v2026.10.22.14`) and listed newest first. Each file
+also has a permanent link to its latest version, e.g.
+`https://github.com/tinyrack-net/dictionary/releases/latest/download/krdict-ko-en.slob`.
+Every dictionary comes in two formats with the same entries:
 
 | File | Format | Use with |
 | --- | --- | --- |
@@ -89,7 +92,7 @@ about 10 minutes.
 | `tinydict fetch [ids...]` | Downloads source data into `.cache/sources/<source>/` and records its ETag and dump dates |
 | `tinydict fetch --metadata-only` | Refreshes metadata without downloading the data |
 | `tinydict build [ids...]` | Builds each dictionary as StarDict, converts it to the other formats, checks every format, then writes release files and `manifest.json` to `dist/` |
-| `tinydict release-tag` | Prints `<data date>-<fingerprint>`. The tag changes when source data, config, code or locked dependencies change |
+| `tinydict fingerprint` | Prints a hash of source versions, config, code and locked dependencies. Release notes record it, and the weekly job skips the build when the latest release already has it |
 | `tinydict release-notes` | Prints Markdown release notes from `dist/manifest.json` |
 
 ## Adding a dictionary

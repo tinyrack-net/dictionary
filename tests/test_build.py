@@ -144,7 +144,20 @@ def test_failed_check_returns_error(project):
     assert not (project / "dist" / "test-en-ko.slob").exists()
 
 
-def test_release_tag(project, capsys):
-    assert _run(project, "release-tag") == 0
-    tag = capsys.readouterr().out.strip()
-    assert tag.startswith("2026-10-21-") and len(tag) == len("2026-10-21-") + 8
+def test_fingerprint(project, capsys):
+    assert _run(project, "fingerprint") == 0
+    first = capsys.readouterr().out.strip()
+    assert len(first) == 12 and int(first, 16) >= 0
+
+    meta = project / ".cache" / "sources" / "ko" / "meta.json"
+    meta.write_text(meta.read_text(encoding="utf-8").replace("ko-etag", "ko-etag2"), encoding="utf-8")
+    assert _run(project, "fingerprint") == 0
+    assert capsys.readouterr().out.strip() != first  # new upstream data -> new build
+
+
+def test_release_notes_record_fingerprint(project, capsys):
+    assert _run(project, "build", "test-en-ko") == 0
+    assert _run(project, "fingerprint") == 0
+    fp = capsys.readouterr().out.strip()
+    assert _run(project, "release-notes") == 0
+    assert f"Build fingerprint: `{fp}`" in capsys.readouterr().out
