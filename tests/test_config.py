@@ -9,7 +9,7 @@ ROOT = Path(__file__).parents[1]
 
 def test_repo_config_is_valid():
     cfg = load_config(ROOT / "dictionaries.toml")
-    assert {"wiktionary-en", "wiktionary-en-ko", "krdict-ko-en"} <= set(cfg.dictionaries)
+    assert {"wiktionary-en", "wiktionary-en-ko", "krdict-ko-en", "krdict-en-ko"} <= set(cfg.dictionaries)
     for d in cfg.dictionaries.values():
         assert d.checks, f"{d.id} should have verification checks"
         assert d.formats == ("stardict", "slob")
@@ -27,7 +27,12 @@ def test_source_urls(config):
 
 
 def test_select(config):
-    assert [d.id for d in config.select(None)] == ["test-en", "test-en-ko", "test-ko-en"]
+    assert [d.id for d in config.select(None)] == [
+        "test-en",
+        "test-en-ko",
+        "test-ko-en",
+        "test-en-ko-krdict",
+    ]
     assert [s.id for s in config.sources_for(config.select(["test-en"]))] == ["en"]
     with pytest.raises(ConfigError):
         config.select(["nope"])

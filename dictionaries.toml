@@ -11,6 +11,7 @@
 #   wiktextract - render entries with PyGlossary's Wiktextract reader
 #   bilingual   - combine translation lists and target-language glosses
 #   krdict      - 한국어기초사전 entries with translations in options.target_lang
+#   krdict-reverse - options.target_lang terms -> the 한국어기초사전 entries using them
 
 [sources.enwiktionary-en]
 edition = "dictionary"
@@ -65,6 +66,22 @@ checks = [
   # The export lists a few conjugations per verb (먹어, 먹으니, 먹는, 먹습니다).
   { query = "먹어", headword = "먹다" },
   { query = "예뻐", headword = "예쁘다" },
+]
+
+[dictionaries.options]
+target_lang = "영어"
+
+[[dictionaries]]
+id = "krdict-en-ko"
+name = "한국어기초사전 영한"
+builder = "krdict-reverse"
+sources = ["krdict"]
+min_entries = 40_000
+checks = [
+  { query = "apple", contains = "사과" },
+  { query = "ship", contains = "배²" },
+  { query = "beautiful", contains = "아름답다" },
+  { query = "eat", contains = "먹다²" },
 ]
 
 [dictionaries.options]

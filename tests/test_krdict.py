@@ -94,3 +94,47 @@ def test_krdict_attribution(project):
     assert "Wiktionary" not in readme
     ifo = _out(project, "test-ko-en", "stardict").read_text(encoding="utf-8")
     assert "author=National Institute of Korean Language" in ifo
+
+
+@pytest.mark.parametrize(
+    "lemma, terms",
+    [
+        ("go; head for; be bound for", ["go", "head for", "be bound for"]),
+        ("(payment) be delayed", ["be delayed"]),
+        ("concurrent(e), rival(e)", ["concurrent", "rival"]),
+        ("take out[pull] one's liver", ["take out one's liver"]),
+        ("(no equivalent expression)", []),
+        ("A light drizzle will go unnoticed as it wets one's clothes", []),  # proverb paraphrase
+    ],
+)
+def test_split_terms(lemma, terms):
+    from tinydict.builders.krdict import split_terms
+
+    assert split_terms(lemma) == terms
+
+
+@pytest.mark.parametrize("format_id", ["stardict", "slob"])
+def test_build_krdict_reverse(project, format_id):
+    assert _run(project, "build", "test-en-ko-krdict") == 0
+    entries = _entries(_out(project, "test-en-ko-krdict", format_id))
+    assert "사과¹" in _defi(entries, "apple")
+    belly = _defi(entries, "belly")
+    assert "배¹" in belly and "배²" not in belly  # only the homonym with that meaning
+    have = _defi(entries, "have")
+    assert "먹다²" in have and "drink" in have  # every sense using the term is listed
+    href = 'href="bword://먹다"' if format_id == "stardict" else 'href="먹다"'
+    assert href in _defi(entries, "eat")  # results link to the Korean entry
+    assert "meokda" in entries  # romanized fallbacks are kept as terms
+
+
+def test_krdict_reverse_ranking():
+    from tinydict.builders.krdict import Hit, Sense, render_reverse
+
+    common = _parsed("배", "2")  # 초급
+    rare = _parsed("먹다", "1")  # 고급
+    hits = [
+        Hit(rare, [(0, 0, Sense("rare", target_lemma="ship"))]),
+        Hit(common, [(0, 1, Sense("common", target_lemma="boat; ship"))]),
+    ]
+    out = render_reverse("ship", hits)
+    assert out.index("배²") < out.index("먹다¹")  # basic vocabulary first

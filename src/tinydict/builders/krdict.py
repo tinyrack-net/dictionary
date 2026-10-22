@@ -1,12 +1,18 @@
-"""Korean dictionary from 한국어기초사전 (Basic Korean Dictionary, NIKL).
+"""Dictionaries from 한국어기초사전 (Basic Korean Dictionary, NIKL).
 
 The export is LMF-style JSON (``LexicalResource.Lexicon.LexicalEntry``), split
 over several files in a zip. Every sense has a Korean definition plus
-translations in 11 languages; ``target_lang`` selects which translation to show
+translations in 11 languages; ``target_lang`` selects which translation to use
 (e.g. ``"영어"``).
 
-Each homonym (배¹ belly, 배² boat, ...) becomes its own entry. Conjugated forms
-(먹어, 먹으니, ...) and spelling variants are added as lookup keys.
+Two builders share the parser:
+
+* ``krdict`` (Korean -> target language): each homonym (배¹ belly, 배² boat, ...)
+  becomes its own entry; conjugated forms (먹어, 먹으니, ...) and spelling
+  variants are lookup keys.
+* ``krdict-reverse`` (target language -> Korean): the translation terms of each
+  sense ("eat; have; consume") become headwords that list the Korean entries
+  using them.
 
 Only text is used. Pronunciation audio, images and video are linked from NIKL's
 servers under separate terms and are left out.
@@ -259,4 +265,100 @@ def build(ctx: BuildContext) -> None:
         glos.addEntry(glos.newEntry(keys, defi, defiFormat="h"))
         count += 1
     log.info("%s: %d entries", ctx.dictionary.id, count)
+    glos.write(str(ctx.ifo_path), formatName="Stardict", **STARDICT_WRITE_OPTIONS)
+
+
+# --- reverse (target language -> Korean) ---------------------------------
+
+LEVEL_RANK = {"초급": 0, "중급": 1, "고급": 2}
+# Terms longer than this are proverb/idiom paraphrases, not lookup words.
+MAX_TERM_WORDS = 4
+MAX_RESULTS = 30
+_PAREN_RE = re.compile(r"\([^)]*\)|\[[^\]]*\]")
+
+
+def split_terms(lemma: str) -> list[str]:
+    """``"go; head for; (payment) be delayed"`` -> lookup terms, in order.
+
+    Parenthesised context is dropped and long paraphrases are skipped.
+    """
+    terms = []
+    for part in re.split(r"[;,]", lemma):
+        term = " ".join(_PAREN_RE.sub(" ", part).split())
+        if term and len(term.split()) <= MAX_TERM_WORDS and any(c.isalpha() for c in term):
+            terms.append(term)
+    return list(dict.fromkeys(terms))
+
+
+@dataclass
+class Hit:
+    """A Korean entry found under one translation term."""
+
+    entry: Entry
+    senses: list[tuple[int, int, Sense]]  # (sense index, term position, sense)
+
+    @property
+    def rank(self) -> tuple:
+        """Common words first (초급 before 고급), then entries whose main
+        translation is the term, then entries where it is a later sense."""
+        sense_index, position, _ = min(self.senses, key=lambda s: (s[1], s[0]))
+        return (LEVEL_RANK.get(self.entry.level, 3), position > 0, sense_index, self.entry.title)
+
+
+def render_reverse(term: str, hits: list[Hit]) -> str:
+    parts = [f"<div><b>{esc(term)}</b></div>", "<ol>"]
+    for hit in sorted(hits, key=lambda h: h.rank)[:MAX_RESULTS]:
+        e = hit.entry
+        tags = [t for t in (e.pos if e.pos != "품사 없음" else e.unit, e.level) if t]
+        head = f'<a href="bword://{esc(e.word, quote=True)}"><b>{esc(e.title)}</b></a>'
+        if e.origin:
+            head += f" {esc(e.origin)}"
+        if tags:
+            head += f' <small><font color="green">{esc(" · ".join(tags))}</font></small>'
+        li = head
+        for _, _, s in sorted(hit.senses)[:3]:
+            li += '<div style="padding-left:1em">'
+            li += f'<span style="color:#1a5fb4">{esc(s.target_lemma)}</span>'
+            if s.definition:
+                li += f' <small><font color="gray">{esc(s.definition)}</font></small>'
+            li += "</div>"
+        parts.append(f"<li>{li}</li>")
+    if len(hits) > MAX_RESULTS:
+        parts.append(f'<div><small><font color="gray">+{len(hits) - MAX_RESULTS}</font></small></div>')
+    parts.append("</ol>")
+    return "".join(parts)
+
+
+def build_reverse(ctx: BuildContext) -> None:
+    if len(ctx.dictionary.sources) != 1:
+        raise ValueError(f"{ctx.dictionary.id}: krdict-reverse builder takes exactly one source")
+    target_lang = ctx.dictionary.options.get("target_lang", "영어")
+
+    # term (lowercased) -> display form, and -> {entry key: Hit}
+    display: dict[str, str] = {}
+    index: dict[str, dict[tuple[str, str], Hit]] = {}
+    for raw in iter_lexical_entries(ctx.source_path(ctx.dictionary.sources[0])):
+        e = parse_entry(raw, target_lang)
+        if not e.word:
+            continue
+        for si, s in enumerate(e.senses):
+            for position, term in enumerate(split_terms(s.target_lemma)):
+                key = term.lower()
+                # Prefer the lowercase spelling when both forms occur ("Korean" vs "korean").
+                if key not in display or term == key:
+                    display[key] = term
+                hit = index.setdefault(key, {}).setdefault((e.word, e.homonym), Hit(e, []))
+                hit.senses.append((si, position, s))
+
+    glos = new_glossary()
+    summary = (
+        f"{ctx.dictionary.name}: {target_lang} terms with the 한국어기초사전 entries that translate to them."
+    )
+    for key, value in ctx.info(summary).items():
+        glos.setInfo(key, value)
+    for key in sorted(index):
+        term = display[key]
+        keys = [term, *([key] if key != term else [])]
+        glos.addEntry(glos.newEntry(keys, render_reverse(term, list(index[key].values())), defiFormat="h"))
+    log.info("%s: %d %s terms", ctx.dictionary.id, len(index), target_lang)
     glos.write(str(ctx.ifo_path), formatName="Stardict", **STARDICT_WRITE_OPTIONS)

@@ -18,7 +18,7 @@ stale doc.
 | `src/tinydict/sources.py` | Downloads sources (kaikki, krdict), records version metadata and attribution |
 | `src/tinydict/cleaning.py` | Fixes Wiktextract data quirks (bogus forms, noise text) |
 | `src/tinydict/glossary.py` | PyGlossary wrappers: output formats, conversion, reading built files |
-| `src/tinydict/builders/` | `wiktextract`, `bilingual` and `krdict` builders (all emit StarDict) |
+| `src/tinydict/builders/` | `wiktextract`, `bilingual`, `krdict` and `krdict-reverse` builders (all emit StarDict) |
 | `src/tinydict/verify.py` | Entry count and sample lookup checks, run on every format |
 | `src/tinydict/package.py` | Release assets per format, attribution README, `manifest.json` |
 | `tests/` | pytest suite using trimmed real entries in `tests/fixtures/` |

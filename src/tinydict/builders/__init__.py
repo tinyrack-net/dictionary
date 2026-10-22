@@ -97,6 +97,8 @@ def get_builder(name: str) -> Builder:
         from .bilingual import build
     elif name == "krdict":
         from .krdict import build
+    elif name == "krdict-reverse":
+        from .krdict import build_reverse as build
     else:
         raise ValueError(f"unknown builder {name!r}")
     return build

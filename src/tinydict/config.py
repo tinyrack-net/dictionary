@@ -13,7 +13,7 @@ KRDICT_BASE = "https://krdict.korean.go.kr"
 # 한국어기초사전 "사전 전체 내려받기" item ids (download popup): JSON zip.
 KRDICT_JSON_SEQ = "220"
 SOURCE_TYPES = {"kaikki", "krdict"}
-BUILDERS = {"wiktextract", "bilingual", "krdict"}
+BUILDERS = {"wiktextract", "bilingual", "krdict", "krdict-reverse"}
 # Builders always produce StarDict; other formats are converted from it.
 FORMATS = ("stardict", "slob")
 DEFAULT_FORMATS = FORMATS

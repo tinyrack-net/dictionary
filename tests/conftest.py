@@ -65,6 +65,20 @@ checks = [
 
 [dictionaries.options]
 target_lang = "영어"
+
+[[dictionaries]]
+id = "test-en-ko-krdict"
+name = "Test 기초 영한"
+builder = "krdict-reverse"
+sources = ["krdict"]
+min_entries = 5
+checks = [
+  { query = "apple", contains = "사과" },
+  { query = "eat", contains = "먹다²" },
+]
+
+[dictionaries.options]
+target_lang = "영어"
 """
 
 # source id -> (fixture file, cached file name, release/extract date, url)

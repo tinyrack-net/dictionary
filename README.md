@@ -19,6 +19,7 @@ release.
 | `wiktionary-en` | Wiktionary English | English-English. About 1.5M entries with definitions, examples, IPA, part of speech, usage tags, inflections, etymology, synonyms and antonyms |
 | `wiktionary-en-ko` | Wiktionary 영한 | English-Korean. Korean glosses and examples from Korean Wiktionary, plus Korean translations from English Wiktionary. About 33K headwords |
 | `krdict-ko-en` | 한국어기초사전 한영 | Korean-English. About 57K entries from the Basic Korean Dictionary: Korean definitions with hand-written English translations, pronunciation, Hanja origin, vocabulary level, sentence and dialogue examples, and related words |
+| `krdict-en-ko` | 한국어기초사전 영한 | English-Korean, built by reversing `krdict-ko-en`. About 49K English words and phrases, each listing the Korean words translated by it (basic vocabulary first) with their English sense and Korean definition. Results link to `krdict-ko-en`, so install both |
 
 You can look up a word by its inflected forms too. For example, `went` finds
 `go`, and `먹어` finds `먹다`. Korean homonyms are separate entries; search
@@ -125,6 +126,11 @@ Builders:
   with translations in 11 languages. `target_lang` picks the one to show
   (`"영어"`, `"일본어"`, `"중국어"`, `"프랑스어"`, `"스페인어"`, ...), so a Korean-Japanese
   dictionary is just another config entry.
+- **`krdict-reverse`**: the same source turned around. The `target_lang`
+  translation terms of each sense (`eat; have; consume`) become headwords
+  listing the Korean entries that use them. Parenthesised context and long
+  proverb paraphrases are left out. Results link to the Korean headword, so
+  the matching `krdict` dictionary should be installed alongside.
 
 Builders always produce StarDict. Other formats are converted from it with
 PyGlossary's standard writers, so builders don't need format-specific code.
