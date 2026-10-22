@@ -1,11 +1,16 @@
 # Tinyrack Dictionary
 
-Offline dictionaries built automatically from [Wiktionary](https://www.wiktionary.org/)
-data published by [kaikki.org](https://kaikki.org/) (extracted with
-[Wiktextract](https://github.com/tatuylonen/wiktextract)).
+Offline dictionaries built automatically from open data:
 
-A scheduled GitHub Actions workflow checks Kaikki every week. When the data
-changes, it rebuilds the dictionaries and publishes them as a GitHub release.
+- [Wiktionary](https://www.wiktionary.org/) data published by
+  [kaikki.org](https://kaikki.org/) (extracted with
+  [Wiktextract](https://github.com/tatuylonen/wiktextract))
+- [한국어기초사전](https://krdict.korean.go.kr/) (Basic Korean Dictionary) by
+  국립국어원 (National Institute of Korean Language)
+
+A scheduled GitHub Actions workflow checks the sources every week. When the
+data changes, it rebuilds the dictionaries and publishes them as a GitHub
+release.
 
 ## Dictionaries
 
@@ -13,9 +18,11 @@ changes, it rebuilds the dictionaries and publishes them as a GitHub release.
 | --- | --- | --- |
 | `wiktionary-en` | Wiktionary English | English-English. About 1.5M entries with definitions, examples, IPA, part of speech, usage tags, inflections, etymology, synonyms and antonyms |
 | `wiktionary-en-ko` | Wiktionary 영한 | English-Korean. Korean glosses and examples from Korean Wiktionary, plus Korean translations from English Wiktionary. About 33K headwords |
+| `krdict-ko-en` | 한국어기초사전 한영 | Korean-English. About 57K entries from the Basic Korean Dictionary: Korean definitions with hand-written English translations, pronunciation, Hanja origin, vocabulary level, sentence and dialogue examples, and related words |
 
 You can look up a word by its inflected forms too. For example, `went` finds
-`go`, and `dictionaries` finds `dictionary`.
+`go`, and `먹어` finds `먹다`. Korean homonyms are separate entries; search
+the bare word (`배`) to see all of them, or a numbered form (`배²`) for one.
 
 ## Download
 
@@ -114,6 +121,10 @@ Builders:
   combined with glosses from a Wiktionary edition written in the target
   language. Options are `target_lang`, `translations_source` and
   `glosses_source`.
+- **`krdict`**: one `type = "krdict"` source. Each 한국어기초사전 sense comes
+  with translations in 11 languages. `target_lang` picks the one to show
+  (`"영어"`, `"일본어"`, `"중국어"`, `"프랑스어"`, `"스페인어"`, ...), so a Korean-Japanese
+  dictionary is just another config entry.
 
 Builders always produce StarDict. Other formats are converted from it with
 PyGlossary's standard writers, so builders don't need format-specific code.
@@ -135,8 +146,15 @@ Monday and can also be started by hand. It:
 ## License
 
 - **Code**: [GPL-3.0-or-later](LICENSE).
-- **Dictionary data**: written by Wiktionary contributors and licensed under
-  [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) and the
-  [GFDL](https://www.gnu.org/licenses/fdl-1.3.html). Every released zip
-  includes a `README.txt` with the source and license notice. If you share
+- **Dictionary data**:
+  - Wiktionary dictionaries: written by Wiktionary contributors, licensed under
+    [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) and the
+    [GFDL](https://www.gnu.org/licenses/fdl-1.3.html).
+  - 한국어기초사전: © 국립국어원, licensed under
+    [CC BY-SA 2.0 KR](https://creativecommons.org/licenses/by-sa/2.0/kr/). Only
+    text is used. NIKL's pronunciation audio, images and video have separate
+    terms and are not included.
+
+  Every released zip includes a `README.txt`, and every slob includes license
+  tags and a description, with the source and license notice. If you share
   modified dictionaries, use the same license.

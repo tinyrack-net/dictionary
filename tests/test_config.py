@@ -9,7 +9,7 @@ ROOT = Path(__file__).parents[1]
 
 def test_repo_config_is_valid():
     cfg = load_config(ROOT / "dictionaries.toml")
-    assert {"wiktionary-en", "wiktionary-en-ko"} <= set(cfg.dictionaries)
+    assert {"wiktionary-en", "wiktionary-en-ko", "krdict-ko-en"} <= set(cfg.dictionaries)
     for d in cfg.dictionaries.values():
         assert d.checks, f"{d.id} should have verification checks"
         assert d.formats == ("stardict", "slob")
@@ -21,10 +21,13 @@ def test_source_urls(config):
         "https://kaikki.org/kowiktionary/%EC%98%81%EC%96%B4/kaikki.org-dictionary-%EC%98%81%EC%96%B4.jsonl.gz"
     )
     assert config.sources["en"].page_url == "https://kaikki.org/dictionary/English/index.html"
+    krdict = config.sources["krdict"]
+    assert krdict.data_url == "https://krdict.korean.go.kr/dicBatchDownload?seq=220"
+    assert krdict.page_url is None and krdict.data_name == "data.zip"
 
 
 def test_select(config):
-    assert [d.id for d in config.select(None)] == ["test-en", "test-en-ko"]
+    assert [d.id for d in config.select(None)] == ["test-en", "test-en-ko", "test-ko-en"]
     assert [s.id for s in config.sources_for(config.select(["test-en"]))] == ["en"]
     with pytest.raises(ConfigError):
         config.select(["nope"])

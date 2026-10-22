@@ -15,23 +15,34 @@ ATTRIBUTION = """\
 {name}
 {rule}
 
-Built from Wiktionary data extracted by kaikki.org using Wiktextract.
-
 Sources:
 {sources}
 
 License
 -------
-The dictionary content comes from Wiktionary and is available under the
-Creative Commons Attribution-ShareAlike 4.0 International License (CC BY-SA 4.0)
-and the GNU Free Documentation License (GFDL). If you redistribute or modify
-this dictionary, keep this notice and share your changes under the same terms.
+{licenses}
+If you redistribute or modify this dictionary, keep this notice and share your
+changes under the same terms.
 
+Build tooling: https://github.com/tinyrack-net/dictionary (GPL-3.0-or-later)
+"""
+
+WIKTIONARY_LICENSE = """\
+Wiktionary content is available under the Creative Commons
+Attribution-ShareAlike 4.0 International License (CC BY-SA 4.0) and the GNU
+Free Documentation License (GFDL). Data extracted by kaikki.org (Wiktextract).
   https://creativecommons.org/licenses/by-sa/4.0/
   https://en.wiktionary.org/wiki/Wiktionary:Copyrights
   https://kaikki.org/
+"""
 
-Build tooling: https://github.com/tinyrack-net/dictionary (GPL-3.0-or-later)
+KRDICT_LICENSE = """\
+한국어기초사전 (Basic Korean Dictionary) © 국립국어원 (National Institute of
+Korean Language), licensed under Creative Commons Attribution-ShareAlike 2.0
+Korea (CC BY-SA 2.0 KR). Multimedia (pronunciation audio, images, video) is not
+included.
+  https://krdict.korean.go.kr/
+  https://creativecommons.org/licenses/by-sa/2.0/kr/
 """
 
 
@@ -44,11 +55,16 @@ def sha256(path: Path) -> str:
 
 
 def attribution(ctx: BuildContext) -> str:
-    sources = "\n".join(
-        f"- {m.url}\n  {m.wiktionary or 'Wiktionary'} dump {m.dump or '?'}, extracted {m.extracted or '?'}"
-        for m in ctx.sources.values()
+    metas = list(ctx.sources.values())
+    sources = "\n".join(f"- {m.url}\n  {m.credit()}" for m in metas)
+    licenses = []
+    if any(not m.is_krdict for m in metas):
+        licenses.append(WIKTIONARY_LICENSE)
+    if any(m.is_krdict for m in metas):
+        licenses.append(KRDICT_LICENSE)
+    return ATTRIBUTION.format(
+        name=ctx.bookname, rule="=" * len(ctx.bookname), sources=sources, licenses="\n".join(licenses)
     )
-    return ATTRIBUTION.format(name=ctx.bookname, rule="=" * len(ctx.bookname), sources=sources)
 
 
 def _zip_dir(ctx: BuildContext, format_id: str, zip_path: Path) -> list[Path]:

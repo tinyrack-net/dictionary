@@ -14,7 +14,7 @@ from . import glossary
 from .builders import get_builder, make_context
 from .config import Config, ConfigError, load_config
 from .package import package, write_release_manifest
-from .sources import fetch, load_meta
+from .sources import SourceMeta, fetch, load_meta
 from .verify import verify
 
 log = logging.getLogger("tinydict")
@@ -109,9 +109,9 @@ def _cmd_release_notes(cfg: Config, args: argparse.Namespace) -> int:
         )
         for s in d["sources"]:
             sources[s["id"]] = s
-    lines += ["", "**Sources** (kaikki.org / Wiktextract)", ""]
+    lines += ["", "**Sources**", ""]
     for s in sources.values():
-        lines.append(f"- `{s['id']}`: {s['wiktionary']} dump {s['dump']}, extracted {s['extracted']}")
+        lines.append(f"- `{s['id']}`: {SourceMeta(**s).credit()}")
     lines += [
         "",
         "**Which file?**",
@@ -122,7 +122,9 @@ def _cmd_release_notes(cfg: Config, args: argparse.Namespace) -> int:
         "and e-readers (KOReader). Unzip into the app's dictionary folder.",
         "",
         "`manifest.json` lists SHA-256 checksums. "
-        "Dictionary content: Wiktionary contributors, CC BY-SA 4.0 / GFDL.",
+        "Dictionary content: Wiktionary contributors (CC BY-SA 4.0 / GFDL) and "
+        "국립국어원 한국어기초사전 (CC BY-SA 2.0 KR); see README.txt / the dictionary "
+        "description for each file.",
     ]
     print("\n".join(lines))
     return 0

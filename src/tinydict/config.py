@@ -9,7 +9,11 @@ from typing import Any
 from urllib.parse import quote
 
 KAIKKI_BASE = "https://kaikki.org"
-BUILDERS = {"wiktextract", "bilingual"}
+KRDICT_BASE = "https://krdict.korean.go.kr"
+# 한국어기초사전 "사전 전체 내려받기" item ids (download popup): JSON zip.
+KRDICT_JSON_SEQ = "220"
+SOURCE_TYPES = {"kaikki", "krdict"}
+BUILDERS = {"wiktextract", "bilingual", "krdict"}
 # Builders always produce StarDict; other formats are converted from it.
 FORMATS = ("stardict", "slob")
 DEFAULT_FORMATS = FORMATS
@@ -21,18 +25,34 @@ class ConfigError(Exception):
 
 @dataclass(frozen=True)
 class Source:
+    """A downloadable dataset.
+
+    * ``kaikki``: a Wiktextract JSONL dump from kaikki.org
+      (``edition`` + ``language`` select the page).
+    * ``krdict``: the full 한국어기초사전 (Basic Korean Dictionary) JSON export.
+    """
+
     id: str
-    edition: str
-    language: str
+    type: str = "kaikki"
+    edition: str = ""
+    language: str = ""
 
     @property
-    def page_url(self) -> str:
-        return f"{KAIKKI_BASE}/{self.edition}/{quote(self.language)}/index.html"
+    def page_url(self) -> str | None:
+        if self.type == "kaikki":
+            return f"{KAIKKI_BASE}/{self.edition}/{quote(self.language)}/index.html"
+        return None
 
     @property
     def data_url(self) -> str:
+        if self.type == "krdict":
+            return f"{KRDICT_BASE}/dicBatchDownload?seq={KRDICT_JSON_SEQ}"
         lang = quote(self.language)
         return f"{KAIKKI_BASE}/{self.edition}/{lang}/kaikki.org-dictionary-{lang}.jsonl.gz"
+
+    @property
+    def data_name(self) -> str:
+        return "data.zip" if self.type == "krdict" else "data.jsonl.gz"
 
 
 @dataclass(frozen=True)
@@ -79,10 +99,16 @@ def load_config(path: Path) -> Config:
 
     sources: dict[str, Source] = {}
     for sid, s in (raw.get("sources") or {}).items():
-        try:
-            sources[sid] = Source(id=sid, edition=s["edition"], language=s["language"])
-        except KeyError as e:
-            raise ConfigError(f"source {sid!r} is missing {e.args[0]!r}") from None
+        stype = s.get("type", "kaikki")
+        if stype not in SOURCE_TYPES:
+            raise ConfigError(f"source {sid!r}: type must be one of {sorted(SOURCE_TYPES)}")
+        if stype == "kaikki":
+            missing = [k for k in ("edition", "language") if not s.get(k)]
+            if missing:
+                raise ConfigError(f"source {sid!r} is missing {missing[0]!r}")
+        sources[sid] = Source(
+            id=sid, type=stype, edition=s.get("edition", ""), language=s.get("language", "")
+        )
 
     dictionaries: dict[str, Dictionary] = {}
     for d in raw.get("dictionaries") or []:

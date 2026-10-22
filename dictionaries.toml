@@ -1,13 +1,16 @@
 # Source datasets and the dictionaries built from them.
 #
-# Sources are Wiktextract JSONL dumps published by kaikki.org.
-#   edition  = path segment for the Wiktionary edition
-#              ("dictionary" = English Wiktionary, "kowiktionary" = Korean Wiktionary, ...)
-#   language = language page name inside that edition
+# Sources (type defaults to "kaikki"):
+#   kaikki - Wiktextract JSONL dump from kaikki.org
+#            edition  = Wiktionary edition path ("dictionary" = English Wiktionary,
+#                       "kowiktionary" = Korean Wiktionary, ...)
+#            language = language page name inside that edition
+#   krdict - 한국어기초사전 (Basic Korean Dictionary, NIKL) full JSON export
 #
 # Dictionaries reference sources by id and pick a builder:
 #   wiktextract - render entries with PyGlossary's Wiktextract reader
 #   bilingual   - combine translation lists and target-language glosses
+#   krdict      - 한국어기초사전 entries with translations in options.target_lang
 
 [sources.enwiktionary-en]
 edition = "dictionary"
@@ -16,6 +19,9 @@ language = "English"
 [sources.kowiktionary-en]
 edition = "kowiktionary"
 language = "영어"
+
+[sources.krdict]
+type = "krdict"
 
 [[dictionaries]]
 id = "wiktionary-en"
@@ -46,3 +52,20 @@ checks = [
 target_lang = "ko"
 translations_source = "enwiktionary-en"
 glosses_source = "kowiktionary-en"
+
+[[dictionaries]]
+id = "krdict-ko-en"
+name = "한국어기초사전 한영"
+builder = "krdict"
+sources = ["krdict"]
+min_entries = 50_000
+checks = [
+  { query = "사과", contains = "apple" },
+  { query = "배", contains = "boat" },
+  # The export lists a few conjugations per verb (먹어, 먹으니, 먹는, 먹습니다).
+  { query = "먹어", headword = "먹다" },
+  { query = "예뻐", headword = "예쁘다" },
+]
+
+[dictionaries.options]
+target_lang = "영어"

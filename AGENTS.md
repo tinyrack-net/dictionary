@@ -4,7 +4,7 @@
 
 Guidance for agents working in `tinyrack-net/dictionary`. This repo builds
 offline dictionaries (StarDict and slob) from kaikki.org Wiktextract data and
-publishes them as GitHub releases. When this file disagrees with `pyproject.toml`,
+국립국어원 한국어기초사전 (krdict), and publishes them as GitHub releases. When this file disagrees with `pyproject.toml`,
 `dictionaries.toml`, the workflows or the tests, trust the code and fix the
 stale doc.
 
@@ -15,10 +15,10 @@ stale doc.
 | `dictionaries.toml` | Source datasets and the dictionaries built from them |
 | `src/tinydict/cli.py` | `tinydict` CLI: `fetch`, `build`, `release-tag`, `release-notes` |
 | `src/tinydict/config.py` | Loads and validates the config |
-| `src/tinydict/sources.py` | Downloads Kaikki data, reads page metadata, iterates JSONL |
+| `src/tinydict/sources.py` | Downloads sources (kaikki, krdict), records version metadata and attribution |
 | `src/tinydict/cleaning.py` | Fixes Wiktextract data quirks (bogus forms, noise text) |
 | `src/tinydict/glossary.py` | PyGlossary wrappers: output formats, conversion, reading built files |
-| `src/tinydict/builders/` | `wiktextract` (monolingual) and `bilingual` builders (both emit StarDict) |
+| `src/tinydict/builders/` | `wiktextract`, `bilingual` and `krdict` builders (all emit StarDict) |
 | `src/tinydict/verify.py` | Entry count and sample lookup checks, run on every format |
 | `src/tinydict/package.py` | Release assets per format, attribution README, `manifest.json` |
 | `tests/` | pytest suite using trimmed real entries in `tests/fixtures/` |
@@ -65,6 +65,15 @@ output.
 - Every release asset must keep the CC BY-SA attribution: `README.txt` in
   zips, and the `license.name` tag and description in slob (`package.py`,
   `BuildContext.info`).
+- krdict: the export is downloaded anonymously from
+  `https://krdict.korean.go.kr/dicBatchDownload?seq=220` (JSON zip). No account
+  is needed. The version is the date in the `Content-Disposition` file name,
+  because the server sends no ETag. Use text fields only. NIKL media URLs
+  (`dicmedia.korean.go.kr`: audio, images, video) have separate terms and must
+  not be copied into the output. Values contain HTML entities and inline tags,
+  so read them through `krdict.clean_text`.
+- Attribution comes from the sources (`SourceMeta.credit()` / `.license`).
+  Don't hard-code one project's credit in shared code.
 - Keep slob file names free of dates. OSS-Dict uses the slob `uri` tag (taken
   from the file name) to keep bookmarks and history across updates.
 - Don't add the GitHub Actions `cache` for `.cache/`. The source data is large,

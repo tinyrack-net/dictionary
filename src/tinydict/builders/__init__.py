@@ -57,22 +57,32 @@ class BuildContext:
         info = {
             "name": self.bookname,
             "website": "https://github.com/tinyrack-net/dictionary",
-            "author": "Wiktionary contributors (via kaikki.org)",
-            "license": "CC BY-SA 4.0 / GFDL",
+            "author": self.authors,
+            "license": self.license,
             "creationTime": self.data_date,
         }
         if summary is not None:
             info["description"] = self.description(summary)
         return info
 
+    @property
+    def authors(self) -> str:
+        names = dict.fromkeys(
+            "National Institute of Korean Language"
+            if m.is_krdict
+            else "Wiktionary contributors (via kaikki.org)"
+            for m in self.sources.values()
+        )
+        return "; ".join(names)
+
+    @property
+    def license(self) -> str:
+        return "; ".join(dict.fromkeys(m.license for m in self.sources.values()))
+
     def description(self, summary: str) -> str:
         lines = [summary]
-        for m in self.sources.values():
-            lines.append(
-                f"Source: {m.wiktionary or 'Wiktionary'} dump {m.dump or '?'}, "
-                f"extracted {m.extracted or '?'} by kaikki.org/Wiktextract."
-            )
-        lines.append("Data license: CC BY-SA 4.0 / GFDL (Wiktionary contributors).")
+        lines += [f"Source: {m.credit()}." for m in self.sources.values()]
+        lines.append(f"Data license: {self.license} ({self.authors}).")
         lines.append("Built by https://github.com/tinyrack-net/dictionary")
         return " ".join(lines)
 
@@ -85,6 +95,8 @@ def get_builder(name: str) -> Builder:
         from .wiktextract import build
     elif name == "bilingual":
         from .bilingual import build
+    elif name == "krdict":
+        from .krdict import build
     else:
         raise ValueError(f"unknown builder {name!r}")
     return build

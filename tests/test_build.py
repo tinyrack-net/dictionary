@@ -64,6 +64,8 @@ def test_build_all(project):
         ("test-en", "slob"),
         ("test-en-ko", "stardict"),
         ("test-en-ko", "slob"),
+        ("test-ko-en", "stardict"),
+        ("test-ko-en", "slob"),
     }
     assert by_key["test-en", "stardict"]["name"] == "Test English (2026-10-03)"
     assert by_key["test-en-ko", "slob"]["data_date"] == "2026-10-21"
