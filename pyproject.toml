@@ -12,6 +12,7 @@ requires-python = ">=3.13"
 dependencies = [
     "lxml>=6.1",
     "pyglossary>=5.4.2",
+    "pyicu-wheels>=2.15.2",
     "python-idzip>=0.3.10",
 ]
 

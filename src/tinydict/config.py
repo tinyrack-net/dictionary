@@ -10,6 +10,9 @@ from urllib.parse import quote
 
 KAIKKI_BASE = "https://kaikki.org"
 BUILDERS = {"wiktextract", "bilingual"}
+# Builders always produce StarDict; other formats are converted from it.
+FORMATS = ("stardict", "slob")
+DEFAULT_FORMATS = FORMATS
 
 
 class ConfigError(Exception):
@@ -47,6 +50,7 @@ class Dictionary:
     sources: tuple[str, ...]
     min_entries: int = 0
     checks: tuple[Check, ...] = ()
+    formats: tuple[str, ...] = DEFAULT_FORMATS
     options: dict[str, Any] = field(default_factory=dict)
 
 
@@ -93,6 +97,9 @@ def load_config(path: Path) -> Config:
         if missing or not d.get("sources"):
             raise ConfigError(f"{did}: unknown or empty sources {missing}")
         checks = tuple(Check(**c) for c in d.get("checks", []))
+        formats = tuple(d.get("formats", DEFAULT_FORMATS))
+        if "stardict" not in formats or any(f not in FORMATS for f in formats):
+            raise ConfigError(f"{did}: formats must include 'stardict' and only use {list(FORMATS)}")
         dictionaries[did] = Dictionary(
             id=did,
             name=d.get("name") or did,
@@ -100,6 +107,7 @@ def load_config(path: Path) -> Config:
             sources=tuple(d["sources"]),
             min_entries=int(d.get("min_entries", 0)),
             checks=checks,
+            formats=formats,
             options=dict(d.get("options") or {}),
         )
 

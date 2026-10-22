@@ -20,8 +20,16 @@ You can look up a word by its inflected forms too. For example, `went` finds
 ## Download
 
 Get the latest files from
-[Releases](https://github.com/tinyrack-net/dictionary/releases/latest). Each
-`<id>-stardict.zip` contains one folder with these files:
+[Releases](https://github.com/tinyrack-net/dictionary/releases/latest). Every
+dictionary comes in two formats with the same entries:
+
+| File | Format | Use with |
+| --- | --- | --- |
+| `<id>.slob` | [slob](https://github.com/itkach/slob) (Aard 2) | Android: OSS-Dict, Aard 2. Also GoldenDict-ng |
+| `<id>-stardict.zip` | StarDict | Desktop: GoldenDict-ng. E-readers: KOReader |
+
+A `.slob` is a single file that apps read in place. Each `-stardict.zip`
+contains one folder:
 
 ```
 wiktionary-en/
@@ -35,15 +43,21 @@ wiktionary-en/
 `manifest.json` in each release lists the entry counts, source dump dates and
 SHA-256 checksums.
 
+Both formats are written by PyGlossary's standard writers, so each follows its
+own format's conventions. For example, links between entries use `bword://` in
+StarDict and plain links in slob, the form each target app expects.
+
 ## Using the dictionaries
 
-The files use the StarDict format, so any app that reads StarDict can open them.
+| Platform | App | File | How |
+| --- | --- | --- | --- |
+| Android | [OSS-Dict](https://github.com/Akylas/OSS-Dict) (Play Store, F-Droid) or Aard 2 | `.slob` | In the *Dictionaries* tab, tap **+** and pick the `.slob` file |
+| Windows / macOS / Linux | [GoldenDict-ng](https://github.com/xiaoyifang/goldendict-ng) | `-stardict.zip` | Unzip into a folder, then add the folder under *Edit → Dictionaries → Sources → Files* and enable *Recursive* |
+| E-readers | [KOReader](https://koreader.rocks/) | `-stardict.zip` | Copy the unzipped folder to `koreader/data/dict/` |
 
-| Platform | App | How |
-| --- | --- | --- |
-| Windows / macOS / Linux | [GoldenDict-ng](https://github.com/xiaoyifang/goldendict-ng) | Unzip into a folder, then add the folder under *Edit → Dictionaries → Sources → Files* and enable *Recursive* |
-| Android | [OSS-Dict](https://github.com/Akylas/OSS-Dict) (Play Store, F-Droid) | In the *Dictionaries* tab, tap **+** and pick the downloaded `.zip` as is. Don't unzip it. The first open unpacks it into app storage |
-| E-readers | [KOReader](https://koreader.rocks/) | Copy the unzipped folder to `koreader/data/dict/` |
+OSS-Dict can also open the StarDict zip, but use the slob there. The app
+follows slob links natively and reads the file without unpacking about 1 GB
+into app storage.
 
 To see English definitions and Korean translations for the same word, turn on
 both dictionaries. Most apps then show the results together.
@@ -59,13 +73,14 @@ uv run tinydict build            # build, verify and package all dictionaries in
 uv run tinydict build wiktionary-en-ko   # build one dictionary
 ```
 
-The English dump is about 520 MB compressed. A full build takes about 7 minutes.
+The English dump is about 520 MB compressed. A full build of both formats takes
+about 10 minutes.
 
 | Command | What it does |
 | --- | --- |
 | `tinydict fetch [ids...]` | Downloads source data into `.cache/sources/<source>/` and records its ETag and dump dates |
 | `tinydict fetch --metadata-only` | Refreshes metadata without downloading the data |
-| `tinydict build [ids...]` | Builds StarDict files into `build/<id>/stardict/`, checks them, then writes zips and `manifest.json` to `dist/` |
+| `tinydict build [ids...]` | Builds each dictionary as StarDict, converts it to the other formats, checks every format, then writes release files and `manifest.json` to `dist/` |
 | `tinydict release-tag` | Prints `<data date>-<fingerprint>`. The tag changes when source data, config, code or locked dependencies change |
 | `tinydict release-notes` | Prints Markdown release notes from `dist/manifest.json` |
 
@@ -88,6 +103,7 @@ checks = [                         # sample lookups that must pass
   { query = "食べた", headword = "食べる" },
   { query = "辞書", contains = "dictionary" },
 ]
+formats = ["stardict", "slob"]     # optional; this is the default
 ```
 
 Builders:
@@ -99,8 +115,11 @@ Builders:
   language. Options are `target_lang`, `translations_source` and
   `glosses_source`.
 
-A build fails, and nothing is released, if any check fails or the entry count
-is below `min_entries`.
+Builders always produce StarDict. Other formats are converted from it with
+PyGlossary's standard writers, so builders don't need format-specific code.
+
+A build fails, and nothing is released, if any check fails in any format or the
+entry count is below `min_entries`.
 
 ## Releases
 

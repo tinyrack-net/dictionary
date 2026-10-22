@@ -12,6 +12,7 @@ def test_repo_config_is_valid():
     assert {"wiktionary-en", "wiktionary-en-ko"} <= set(cfg.dictionaries)
     for d in cfg.dictionaries.values():
         assert d.checks, f"{d.id} should have verification checks"
+        assert d.formats == ("stardict", "slob")
 
 
 def test_source_urls(config):
@@ -35,6 +36,11 @@ def test_select(config):
         ('[[dictionaries]]\nid="x"\nbuilder="nope"\nsources=[]', "builder"),
         ('[[dictionaries]]\nid="x"\nbuilder="wiktextract"\nsources=["missing"]', "sources"),
         ('[sources.a]\nedition="dictionary"', "language"),
+        (
+            '[sources.a]\nedition="d"\nlanguage="x"\n[[dictionaries]]\nid="x"\nbuilder="wiktextract"\n'
+            'sources=["a"]\nformats=["slob"]',
+            "formats",
+        ),
     ],
 )
 def test_invalid_config(tmp_path, body, message):

@@ -17,7 +17,6 @@ from typing import Any
 
 from ..cleaning import inflected_forms, is_noise_etymology, is_noise_example, is_noise_sense
 from ..glossary import STARDICT_WRITE_OPTIONS, new_glossary
-from ..links import link_href
 from ..sources import iter_entries, iter_lines
 from . import BuildContext
 
@@ -160,7 +159,11 @@ def render(word: str, c: Collector) -> str:
         for key in ("synonyms", "antonyms"):
             words = [x["word"] for x in e.get(key) or () if x.get("word")]
             if words:
-                links = ", ".join(f'<a href="{link_href(w)}">{esc(w)}</a>' for w in dict.fromkeys(words))
+                # bword:// is PyGlossary's internal link form; each writer
+                # converts it for its format (kept in StarDict, stripped in slob).
+                links = ", ".join(
+                    f'<a href="bword://{esc(w, quote=True)}">{esc(w)}</a>' for w in dict.fromkeys(words)
+                )
                 parts.append(f"<div>{ui[key]}: {links}</div>")
         if ety := [t for t in e.get("etymology_texts") or () if not is_noise_etymology(t)]:
             parts.append(f"<div>{ui['etymology']}: {esc(' '.join(ety))}</div>")
@@ -218,12 +221,9 @@ def build(ctx: BuildContext) -> None:
             c.add_headword_details(entry)
 
     glos = new_glossary()
-    glos.setInfo("name", ctx.bookname)
-    glos.setInfo(
-        "description",
-        ctx.description(f"{ctx.dictionary.name}: translations and target-language glosses from Wiktionary."),
-    )
-    glos.setInfo("website", "https://github.com/tinyrack-net/dictionary")
+    summary = f"{ctx.dictionary.name}: translations and target-language glosses from Wiktionary."
+    for key, value in ctx.info(summary).items():
+        glos.setInfo(key, value)
     for word in c.words():
         keys = [word, *sorted(c.forms.get(word, set()) - {word})]
         glos.addEntry(glos.newEntry(keys, render(word, c), defiFormat="h"))

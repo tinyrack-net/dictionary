@@ -43,38 +43,59 @@ def sha256(path: Path) -> str:
     return h.hexdigest()
 
 
-def package(ctx: BuildContext, result: VerifyResult, dist_dir: Path) -> dict:
-    d = ctx.dictionary
-    dist_dir.mkdir(parents=True, exist_ok=True)
+def attribution(ctx: BuildContext) -> str:
     sources = "\n".join(
         f"- {m.url}\n  {m.wiktionary or 'Wiktionary'} dump {m.dump or '?'}, extracted {m.extracted or '?'}"
         for m in ctx.sources.values()
     )
-    readme = ATTRIBUTION.format(name=ctx.bookname, rule="=" * len(ctx.bookname), sources=sources)
+    return ATTRIBUTION.format(name=ctx.bookname, rule="=" * len(ctx.bookname), sources=sources)
 
-    zip_path = dist_dir / f"{d.id}-stardict.zip"
-    files = sorted(p for p in ctx.output_dir.iterdir() if p.is_file())
+
+def _zip_dir(ctx: BuildContext, format_id: str, zip_path: Path) -> list[Path]:
+    """Zip a format's output folder as ``<id>/...`` together with README.txt."""
+    d = ctx.dictionary
+    files = sorted(p for p in ctx.format_dir(format_id).iterdir() if p.is_file())
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_STORED) as z:
         for p in files:
-            # .dict.dz is already compressed; deflate the rest.
-            compress = zipfile.ZIP_STORED if p.suffix == ".dz" else zipfile.ZIP_DEFLATED
+            # .dict.dz and .slob are already compressed; deflate the rest.
+            compress = zipfile.ZIP_STORED if p.suffix in {".dz", ".slob"} else zipfile.ZIP_DEFLATED
             z.write(p, f"{d.id}/{p.name}", compress_type=compress)
-        z.writestr(f"{d.id}/README.txt", readme, compress_type=zipfile.ZIP_DEFLATED)
+        z.writestr(f"{d.id}/README.txt", attribution(ctx), compress_type=zipfile.ZIP_DEFLATED)
+    return files
 
-    manifest = {
+
+def package(ctx: BuildContext, format_id: str, result: VerifyResult, dist_dir: Path) -> dict:
+    """Write the release asset for one format and return its manifest entry.
+
+    StarDict is a folder of files, so it ships as a zip. A slob is a single
+    self-describing file that apps open directly, so it ships as is. Its name
+    has no date, so the slob ``uri`` tag (derived from the file name) stays
+    stable and apps keep bookmarks and history across updates.
+    """
+    d = ctx.dictionary
+    dist_dir.mkdir(parents=True, exist_ok=True)
+
+    if format_id == "slob":
+        asset = dist_dir / f"{d.id}.slob"
+        asset.write_bytes(ctx.output_path("slob").read_bytes())
+        files = [ctx.output_path("slob")]
+    else:
+        asset = dist_dir / f"{d.id}-{format_id}.zip"
+        files = _zip_dir(ctx, format_id, asset)
+
+    return {
         "id": d.id,
         "name": ctx.bookname,
-        "format": "stardict",
+        "format": format_id,
         "entries": result.entries,
         "synonyms": result.synonyms,
         "data_date": ctx.data_date,
         "sources": [asdict(m) for m in ctx.sources.values()],
-        "asset": zip_path.name,
-        "size": zip_path.stat().st_size,
-        "sha256": sha256(zip_path),
+        "asset": asset.name,
+        "size": asset.stat().st_size,
+        "sha256": sha256(asset),
         "files": {p.name: {"size": p.stat().st_size, "sha256": sha256(p)} for p in files},
     }
-    return manifest
 
 
 def write_release_manifest(dist_dir: Path, manifests: list[dict]) -> Path:

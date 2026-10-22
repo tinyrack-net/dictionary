@@ -28,13 +28,5 @@ def build(ctx: BuildContext) -> None:
             count += 1
     log.info("%s: cleaned %d entries", ctx.dictionary.id, count)
 
-    convert_wiktextract(
-        cleaned,
-        ctx.ifo_path,
-        info={
-            "name": ctx.bookname,
-            "description": ctx.description(f"{ctx.dictionary.name} built from Wiktionary."),
-            "website": "https://github.com/tinyrack-net/dictionary",
-        },
-    )
+    convert_wiktextract(cleaned, ctx.ifo_path, info=ctx.info(f"{ctx.dictionary.name} built from Wiktionary."))
     cleaned.unlink()
